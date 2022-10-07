@@ -1,0 +1,117 @@
+---
+title: "Assigment - kNN DIY"
+author:
+  - Dimitar Stanchev - Author
+  - name reviewer here - Reviewer
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+   html_notebook:
+    toc: true
+    toc_depth: 2
+---
+
+
+```{r}
+library(tidyverse)
+library(googlesheets4)
+library(class)
+library(caret)
+```
+
+## Business Understanding
+
+The goal of collecting this data is to reduce energy usage in buildings through proper regulation of HVAC and lighting systems.
+
+## Data Understanding
+```{r} 
+url <- "https://raw.githubusercontent.com/HAN-M3DM-Data-Mining/data-mining-s2y2122-vicsubzero/master/datasets/KNN-occupancy.csv"
+    
+KNN <- read_csv(url)
+```
+
+```{r}
+str(KNN) 
+
+# This data set has 7 Variables(columns) and 8143 Observations(rows) 
+```
+
+## Data Preparation
+```{r}
+KNNC <- KNN[-1]
+
+head(KNNC)
+```
+
+```{r}
+cntDiag<- table(KNNC$Occupancy) 
+
+propDiag <- round(prop.table(cntDiag) * 100 , digits = 1)                
+
+cntDiag   # 0 means unoccupied 1 means occupied
+```
+
+
+```{r}
+propDiag
+```
+
+```{r}
+KNNC$Occupied <- factor(KNNC$Occupancy, levels = c("0", "1"), labels = c("Occupied", "unoccupied")) %>% relevel("Occupied")
+head(KNNC, 50)
+```
+
+```{r}
+summary(KNNC[c("Light","Temperature","Humidity", "CO2")])
+```
+
+```{r}
+normalize <- function(x)
+  return ((x - min(x)) / (max(x) - min(x)))
+
+testSet1 <- c(0:5)
+testSet2 <- c(0:5) * 10
+
+cat("testSet1:", testSet1, "\n")
+```
+
+```{r}
+cat("testSet2:", testSet2, "\n")
+```
+
+```{r}
+cat("Normalized testSet1:", normalize(testSet1), "\n")
+```
+
+```{r}
+cat("Normalized testSet2:", normalize(testSet2))
+```
+
+```{r}
+nCols <- dim(KNNC)[2] 
+
+KNNC_n <- sapply(1:(nCols-1),function(x) {normalize(KNNC[,x])}) %>% as.data.frame()
+
+summary(KNNC_n)
+```
+
+```{r}
+KNNtrain_feat <- KNNC_n[1:1199, ]
+KNNtest_feat <- KNNC_n[1200:8143, ]
+```
+
+
+```{r}
+KNNtrain_labels <- KNNC[1:1199, 7]  
+KNNtest_labels <- KNNC[1200:8143, 7]
+```
+
+## Modeling
+```{r}
+KNNC_test_pred <- knn(train = as.matrix(KNNtrain_feat), test = as.matrix(KNNtest_feat), cl =as.matrix(KNNtrain_labels), k = 21)
+
+head(KNNC_test_pred)
+```
+## Evaluation and Deployment
+```{r}
+confusionMatrix(KNNC_test_pred, KNNtest_labels[[1]], positive = NULL, dnn = c("Prediction", "True"))
+```
