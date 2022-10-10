@@ -1,0 +1,183 @@
+---
+title: "Assigment - Naive Bayes DIY"
+author:
+  - Dimitar Stanchev - Author
+  - name reviewer here - Reviewer
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+   html_notebook:
+    toc: true
+    toc_depth: 2
+---
+
+```{r}
+library(tidyverse)
+library(tm)
+library(caret)
+library(wordcloud)
+library(e1071)
+```
+
+Setup
+```{r}
+#Setup
+library(tidyverse)
+library(caret)
+library(tm)
+library(stopwords)
+library(SnowballC)
+library(e1071)
+
+```
+
+```{r}
+#Data
+
+url <- "https://raw.githubusercontent.com/HAN-M3DM-Data-Mining/data-mining-s2y2122-vicsubzero/master/datasets/NB-fakenews.csv"
+rawDA <- read_csv(url)
+
+```
+## Business Understanding
+
+Create a mechanism for detecting untrustworthy news stories.
+
+## Data Understanding
+
+We have a dataset with different titles from a news item. They are classified as "0" dependable and "1" undependable. The model's purpose will be to properly predict whether or not the article is credible.
+
+## Data Cleaning & Preparation 
+
+```{r}
+# Begin by cleaning up the data and deleting some of the unneeded columns. 
+rawDA <- rawDA[-1]
+rawDA <- rawDA[-1]
+rawDA <- rawDA[-1]
+```
+
+
+```{r}
+#Reducing the amount of observations so that the data is easier and quicker to handle.
+
+rawDA <- rawDA[-c(1:17000),]
+```
+
+```{r}
+*
+# Rename the labels to make them more understandable.
+
+rawDA <- mutate(rawDA, label =recode(label, 1= "Fake", 0="Real"))
+```
+
+```{r}
+*
+#Creating the factor 
+
+rawDA$label <- rawDA$label %>% factor %>% relevels("Real")
+class(rawDA$label)
+```
+```{r}
+# Developing a corpus, which is a collection of text documents
+
+rawCorpus <- Corpus(VectorSource(rawDA$text))
+inspect(rawCorpus[1:3])
+```
+```{r}
+# Tidying up, deleting numerals,uppercases, etc. 
+
+cleanCorpus <- rawCorpus %>% tm_maps(tolower) %>% tm_map(removeNumbers)
+
+```
+```{r}
+# Deleting frequent transitional words such as: and, but
+
+rawCorpus <- cleanCorpus %>% tm_map(removeWords, stopwords("en", source = "nltk")) %>% tm_map(removePunctuation)
+```
+
+```{r}
+# Now that many objects have been eliminated, there remain empty areas that need to be removed.
+
+cleanCorpus <- cleanCorpus %>% tm_map(stripWhitespace)
+
+#Handling text stemming, which reduces words to their basic form.
+cleanCorpus <- cleanCorpus %>% tm_map(stemDocument)
+
+# contrasting the tidy and raw corpuses.
+
+tibble(Raw = rawCorpus$content[1:3], Clean = cleanCorpus$content[1:3])
+```
+
+```{r}
+#Creating a matrix with all of the words.
+
+cleanDTM <- cleanCorpus %>% DocumentTermMatrix
+inspect(cleanDTM)
+```
+
+```{r}
+#Dividing the datasets into training and test sets (using a 75/25% split)
+
+trainIndex <- createDataPartition(rawDA$label, p = .75, 
+                                  list = FALSE, 
+                                  times = 1)
+head(trainIndex)
+```
+
+```{r}
+# Apply split indices to DF
+trainDF <- rawDA[trainIndex, ]
+testDF <- rawDA[-trainIndex, ]
+
+# Apply split indices to Corpus
+trainCorpus <- cleanCorpus[trainIndex]
+testCorpus <- cleanCorpus[-trainIndex]
+
+# Apply split indices to DTM
+trainDTM <- cleanDTM[trainIndex, ]
+testDTM <- cleanDTM[-trainIndex, ]
+```
+
+```{r}
+# Deleting words with low frequencies to reduce calculation time. Specifically, relatively few counts will have low predictive capability.
+
+freqWords <- trainDTM %>% findFreqTerms(5)
+trainDTM <-  DocumentTermMatrix(trainCorpus, list(dictionary = freqWords))
+testDTM <-  DocumentTermMatrix(testCorpus, list(dictionary = freqWords))
+```
+
+```{r}
+# Creating a function that will tell whether or not the term exists in the document. 
+convert_counts <- function(x) {
+  x <- ifelse(x > 0, 1, 0) %>% factor(levels = c(0,1), labels = c("No", "Yes"))
+}
+```
+
+
+```{r}
+nColsDTM <- dim(trainDTM)[2]
+```
+
+
+```{r}
+trainDTM <- apply(trainDTM, MARGIN = 2, convert_counts)
+```
+
+
+```{r}
+testDTM <- apply(testDTM, MARGIN = 2, convert_counts)
+```
+
+
+```{r}
+heads(trainDTM[,1:10])
+```
+
+## Modeling & Deployment 
+```{r}
+nbayesModel <- naiveBayes(trainDTM, trainDF$label, laplace = 100)
+
+```
+
+```{r}
+predVec <- predict(nbayesModel, testDTM)
+confusionMatrix(predVec, testDF$label, positive = "Real", dnn = c("Prediction", "True"))
+```
