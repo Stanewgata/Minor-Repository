@@ -1,0 +1,107 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+#Load packages
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(readxl)
+```
+
+```{r}
+#Load dataset
+data <- read.csv("https://raw.githubusercontent.com/Stanewgata/Minor-Repository/main/Individual2.csv")
+str(data)
+```
+
+```{r}
+head(data)
+```
+
+```{r}
+summary(data)
+```
+
+```{r}
+#Copy of the dataset
+df <- data.frame(data)  
+head(df)
+```
+
+```{r}
+#Replacing integer numbers with characters
+df['Sex'][df['Sex'] == 0] <- 'Male'
+df['Sex'][df['Sex'] == 1] <- 'Female'
+
+df['Marital.Status'][df['Marital.Status'] == 0 ] <- 'Single'
+df['Marital.Status'][df['Marital.Status'] == 1 ] <- 'Non-Single'
+
+df['Education'][df['Education'] == 0] <- 'Unknown'
+df['Education'][df['Education'] == 1] <- 'High-School'
+df['Education'][df['Education'] == 2] <- 'University'
+df['Education'][df['Education'] == 3] <- 'Graduate'
+
+df['Occupation'][df['Occupation'] == 0] <-  'Unemployed'
+df['Occupation'][df['Occupation'] == 1] <-  'Employed'
+df['Occupation'][df['Occupation'] == 2] <-  'Self-Employed'
+
+df['Settlement.Size'][df['Settlement.Size'] == 0] <- 'Small cities'
+df['Settlement.Size'][df['Settlement.Size'] == 1] <- 'Large cities'
+```
+
+```{r}
+head(df)
+```
+
+```{r}
+#Barplot visualization for the sex column
+
+a=table(df$Sex)
+barplot(a,main="Barplot for Gender Comparison",
+       ylab="Count",
+       xlab="Sex",
+       col=rainbow(6),
+       legend=rownames(a))
+```
+
+```{r}
+#Age distribution histogram
+
+hist(df$Age,
+    col="purple",
+    main="Histogram for value counts of Age",
+    xlab="Age",
+    ylab="Frequency",
+    labels=TRUE)
+```
+
+```{r}
+#Income distribution histogram
+hist(df$Income,
+    col="blue",
+    main="Income of customers",
+    xlab="Income",
+    ylab="Count",
+    labels=TRUE)
+```
+
+```{r}
+#City group distribution
+a=table(df$Settlement.Size)
+barplot(a,main="City groups of Customers",
+       ylab="Count",
+       xlab="Settlement Size",
+       col=rainbow(4),
+       legend=rownames(a))
+```
+
+```{r}
+#Replace "Unknown" values with NA
+#ACTUAL CODE IN BRACKETS -> (data[data == "Unknown"] <- NA)
+
+#Remove the rows containing "NA" values
+#ACTUAL CODE IN BRACKETS -> (na.omit(data))
+```
